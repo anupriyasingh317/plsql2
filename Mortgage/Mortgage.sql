@@ -11,34 +11,6 @@ CREATE TABLE Reference_Pool (
     Modified_Date           DATE                      -- Date of last modification
 );
 
-
-CREATE TABLE Loan_old (
-    Loan_ID                 VARCHAR2(12) PRIMARY KEY,  -- Unique identifier for each loan
-    Reference_Pool_ID       VARCHAR2(10),              -- Foreign key to Reference_Pool
-    Original_UPB            NUMBER(12,2),              -- Original unpaid principal balance
-    Current_UPB             NUMBER(12,2),              -- Current unpaid principal balance
-    Origination_Date        DATE,                      -- Loan origination date
-    First_Payment_Date      DATE,                      -- First payment date by the borrower
-    Loan_Term               NUMBER(3),                 -- Loan term in months
-    Interest_Rate           NUMBER(5,3),               -- Interest rate of the loan
-    Loan_Purpose            VARCHAR2(20),              -- Purpose of the loan (e.g., Purchase, Refinance)
-    Property_Type           VARCHAR2(20),              -- Type of property (e.g., Single-family home)
-    Loan_Type               VARCHAR2(20),              -- Fixed-rate, Adjustable-rate, etc.
-    LTV                     NUMBER(5,2),               -- Loan-to-value ratio at origination
-    CLTV                    NUMBER(5,2),               -- Combined loan-to-value ratio at origination
-    Debt_to_Income          NUMBER(5,2),               -- Borrower’s debt-to-income ratio at origination
-    Borrower_Credit_Score   NUMBER(3),                 -- Borrower’s credit score at origination
-    Co_Borrower_Credit_Score NUMBER(3),                -- Co-borrower’s credit score at origination (if applicable)
-    First_Time_Homebuyer    VARCHAR2(1),               -- Y/N indicator for first-time homebuyer
-    Created_By              VARCHAR2(50),              -- User who created the record
-    Created_Date            DATE DEFAULT SYSDATE,      -- Date of record creation
-    Modified_By             VARCHAR2(50),              -- User who last modified the record
-    Modified_Date           DATE,                      -- Date of last modification
-    CONSTRAINT FK_Reference_Pool 
-        FOREIGN KEY (Reference_Pool_ID) 
-        REFERENCES Reference_Pool(Reference_Pool_ID)
-);
-
 CREATE TABLE Loan (
     Loan_ID                 VARCHAR2(12) PRIMARY KEY,
     Reference_Pool_ID       VARCHAR2(10),
@@ -76,6 +48,7 @@ ALTER TABLE Loan ADD (Compliance_Flag VARCHAR2(1), Review_Date DATE);
 ALTER TABLE Loan ADD (Eligibility_Status VARCHAR2(20));
 ALTER TABLE Loan ADD (Foreclosure_Status VARCHAR2(20));
 ALTER TABLE Loan ADD (Foreclosure_Start_Date DATE);
+ALTER TABLE Loan ADD (Risk_Score NUMBER(5,2));
 
 
 CREATE TABLE Loan_Performance (
@@ -191,6 +164,10 @@ CREATE TABLE Borrower (
     Modified_Date            DATE,                       -- Last modification date
     CONSTRAINT FK_Loan_Borrower FOREIGN KEY (Loan_ID)
     REFERENCES Loan(Loan_ID)                              -- Foreign key reference to the Loan entity
+);
+ALTER TABLE Borrower ADD (
+    Monthly_Income NUMBER(12,2),				-- Monthly_Income: The borrower's gross monthly income.
+    Monthly_Debt   NUMBER(12,2)					-- Monthly_Debt: The borrower's total monthly debt obligations.
 );
 
 CREATE TABLE Loan_Modification (
@@ -350,3 +327,22 @@ CREATE TABLE Refinance_Documents (
 -- Optional: Add an index on Loan_ID to optimize existence checks
 CREATE INDEX idx_refinance_documents_loan_id ON Refinance_Documents (Loan_ID);
 
+CREATE TABLE Market_Rate (
+    Rate_Type        VARCHAR2(20),   -- e.g., 'Fixed', 'ARM'
+    Rate_Term        NUMBER(3),      -- e.g., 30 for 30-year loans
+    Current_Rate     NUMBER(5,3),    -- Current market interest rate
+    Effective_Date   DATE,           -- Date when the rate became effective
+    CONSTRAINT PK_Market_Rate PRIMARY KEY (Rate_Type, Rate_Term, Effective_Date)
+);
+
+CREATE TABLE Comparable_Sales (
+    Comparable_ID   NUMBER PRIMARY KEY, --Unique identifier for each comparable sale record.
+    Property_ID     VARCHAR2(12),   -- Foreign key to the Property being appraised
+    Sale_Price      NUMBER(12,2),   -- Sale price of the comparable property
+    Adjustments     NUMBER(12,2),   -- Adjustments made to the sale price
+    Sale_Date       DATE,			-- The date when the comparable property was sold.
+    Created_By      VARCHAR2(50),
+    Created_Date    DATE DEFAULT SYSDATE,
+    Modified_By     VARCHAR2(50),
+    Modified_Date   DATE
+);
